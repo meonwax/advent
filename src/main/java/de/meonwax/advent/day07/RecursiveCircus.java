@@ -6,6 +6,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -20,10 +21,12 @@ public class RecursiveCircus {
     private static final Pattern PATTERN_CHILDREN = Pattern.compile(", ");
 
     public static void main(String[] args) throws IOException, URISyntaxException {
-        System.out.println("Root program is: " + getRoot(loadInput()).name);
+        Map<String, Program> programs = getPrograms(loadInput());
+        System.out.println("Root program is: " + getRoot(programs).name);
+        System.out.println("Unbalanced need to have weight of: " + getPartTwo(getRoot(programs)));
     }
 
-    private static Program getRoot(Stream<String> input) {
+    private static Map<String, Program> getPrograms(Stream<String> input) {
 
         // Determine all programs
         Map<String, Program> programs = input.map(RecursiveCircus::mapToProgram)
@@ -40,13 +43,68 @@ public class RecursiveCircus {
             }
         }
 
-        // Start anywhere and walk the program tree down to root
+        return programs;
+    }
+
+    private static Program getRoot(Map<String, Program> programs) {
         Program root = programs.entrySet().iterator().next().getValue();
         while (root.parent != null) {
             root = root.parent;
         }
-
         return root;
+    }
+
+    private static int getPartTwo(Program root) {
+        Result result = getBalanceResult(root);
+        if (result.program != null) {
+            int i = getPartTwo(result.program);
+            if (i == 0) {
+                System.out.println("Unbalanced program is: " + result.program.name);
+                return result.program.weight + result.difference;
+            }
+            return i;
+        }
+        return 0;
+    }
+
+    private static Result getBalanceResult(Program root) {
+        Map<Integer, Integer> occurrences = new HashMap<>();
+        Map<Integer, Program> children = new HashMap<>();
+
+        // Count occurrences of totals
+        for (Program child : root.children) {
+            int sumWeight = sumWeight(child);
+            Integer o = occurrences.getOrDefault(sumWeight, 0);
+            occurrences.put(sumWeight, ++o);
+            children.put(sumWeight, child);
+        }
+
+        // Get unbalanced program and the difference
+        Program program = null;
+        int odd = 0;
+        int normal = 0;
+
+        for (Map.Entry<Integer, Integer> entry : occurrences.entrySet()) {
+            if (entry.getValue() == 1) {
+                program = children.get(entry.getKey());
+                odd = entry.getKey();
+            } else {
+                normal = entry.getKey();
+            }
+        }
+
+        Result result = new Result();
+        result.program = program;
+        result.difference = normal - odd;
+        return result;
+    }
+
+    private static int sumWeight(Program root) {
+        int total = 0;
+        for (Program child : root.children) {
+            total += sumWeight(child);
+        }
+        return total + root.weight;
     }
 
     private static Program mapToProgram(String row) {
@@ -81,6 +139,11 @@ public class RecursiveCircus {
             child.parent = this;
             children.add(child);
         }
+    }
+
+    static class Result {
+        Program program;
+        int difference;
     }
 }
 
