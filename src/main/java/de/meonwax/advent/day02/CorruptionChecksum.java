@@ -22,11 +22,11 @@ public class CorruptionChecksum {
                 .splitAsStream(row)
                 .mapToInt(Integer::valueOf)
                 .max())
-                .getAsInt();
+                .orElse(0);
         Integer minValue = pattern.splitAsStream(row)
                 .mapToInt(Integer::valueOf)
                 .min()
-                .getAsInt();
+                .orElse(0);
         return maxValue - minValue;
     }
 

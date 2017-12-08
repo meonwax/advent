@@ -36,7 +36,7 @@ public class Registers {
     }
 
     private static int getMaxValue(Map<String, Integer> registers) {
-        return registers.values().stream().reduce(Integer::max).get();
+        return registers.values().stream().reduce(Integer::max).orElse(0);
     }
 
     private static int doOperation(Integer content, String operation, Integer value) {
