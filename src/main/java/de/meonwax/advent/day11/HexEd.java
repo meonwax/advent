@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
  */
 public class HexEd {
 
-    private static Pattern PATTERN = Pattern.compile(",");
+    private static final Pattern PATTERN = Pattern.compile(",");
 
     // Directions for a flat topped hexagon
     private static final String NORTH = "n";
