@@ -5,76 +5,48 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.regex.Pattern;
 
 public class PacketScanners {
 
-    private static final Pattern PATTERN = Pattern.compile(": ");
+    private static final String PATTERN = ": ";
 
     public static void main(String[] args) throws IOException, URISyntaxException {
-
         String[] input = loadInput();
-        int severity = 1;
+        Layer[] firewall = generateFirewall(input);
 
-        for (int delay = 0; severity > 0; delay++) {
-            Layer[] firewall = generateFirewall(input);
-
-            severity = 0;
-
-            for (int i = 0; i < delay; i++) {
-                stepScanners(firewall);
-            }
-
-            for (int depth = 0; depth < firewall.length; depth++) {
-                severity += step(depth, firewall);
-            }
-
-            System.out.println("delay: " + delay + " severity: " + severity);
+        int delay = 0;
+        while (isCaught(firewall, delay)) {
+            delay++;
         }
+
+        System.out.println("With a delay of " + delay + " picoseconds we will not be caught");
     }
 
-    private static int step(int nextDepth, Layer[] firewall) {
+    private static boolean isCaught(Layer[] firewall, int delay) {
         int severity = 0;
-
-        // Check if we get caught in next layer
-        Layer layer = firewall[nextDepth];
-        if (layer != null && layer.position == 0) {
-            severity = nextDepth * layer.range;
-        }
-
-        // Move the scanner on step further
-        stepScanners(firewall);
-
-        return severity;
-    }
-
-    private static void stepScanners(Layer[] firewall) {
-        for (int i = 0; i < firewall.length; i++) {
-            Layer layer = firewall[i];
-            if (layer != null) {
-                layer.step();
+        boolean caught = false;
+        for (int i = 0; i < 100; i++) {
+            int step = i + delay;
+            if (firewall[i] != null && !firewall[i].isOpen(step)) {
+                severity += i * firewall[i].range;
+                caught = true;
             }
         }
+
+        if (delay == 0) {
+            System.out.println("First run has severity of " + severity);
+        }
+
+        return caught;
     }
 
     private static Layer[] generateFirewall(String[] input) {
-        Layer[] firewall = new Layer[getInputValues(input[input.length - 1])[0] + 1];
-        for (int i = input.length - 1; i >= 0; i--) {
-            String row = input[i];
-            int[] values = getInputValues(row);
-
-            int depth = values[0];
-            int range = values[1];
-
-            Layer layer = new Layer(range);
-            firewall[depth] = layer;
+        Layer[] firewall = new Layer[100];
+        for (String row : input) {
+            String[] values = row.split(PATTERN);
+            firewall[Integer.valueOf(values[0])] = new Layer(Integer.valueOf(values[1]));
         }
         return firewall;
-    }
-
-    private static int[] getInputValues(String row) {
-        String[] values = PATTERN.split(row);
-        return new int[]{Integer.valueOf(values[0]), Integer.valueOf(values[1])};
     }
 
     private static String[] loadInput() throws IOException, URISyntaxException {
@@ -84,22 +56,15 @@ public class PacketScanners {
     }
 
     private static class Layer {
+        int range;
 
         Layer(int range) {
             this.range = range;
         }
 
-        void step() {
-            if ((direction == 1 && position == range - 1) ||
-                    (direction == -1 && position == 0)) {
-                direction *= -1;
-            }
-            position += direction;
+        public boolean isOpen(int step) {
+            return !(step % ((range - 1) * 2) == 0);
         }
-
-        int range;
-        int position = 0;
-        int direction = 1;
     }
 }
 
